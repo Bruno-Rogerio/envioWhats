@@ -5,7 +5,10 @@ import requests
 import time
 from dotenv import load_dotenv
 import locale
+from flask import Flask, jsonify
 
+# Configura o locale para o padrão brasileiro
+locale.setlocale(locale.LC_ALL, 'pt_BR.UTF-8')
 
 load_dotenv()
 
@@ -21,6 +24,9 @@ GRUPOS_WHATSAPP = ["120363356072490260-group"]  # Substitua pelos seus IDs de gr
 # Configurações de horário
 HORARIO_SILENCIO_INICIO = 22  # 22:00
 HORARIO_SILENCIO_FIM = 8  # 08:00
+
+# Criação do app Flask
+app = Flask(__name__)
 
 # Conexão MongoDB
 client = MongoClient(MONGO_URI)
@@ -101,7 +107,6 @@ Economize R$ {economia}!
 
 🛒 Compre agora pelo link abaixo
 """
-    
     return mensagem
 
 def registrar_engajamento(produto_id, grupo_id, tipo_engajamento):
@@ -164,23 +169,22 @@ def verificar_e_enviar_produto():
     except Exception as e:
         print(f"Erro ao processar produtos: {str(e)}")
 
-def main():
-    print("Iniciando monitoramento de novos produtos...")
-    
-    if not verificar_conexao():
-        print("Encerrando o script devido a problemas de conexão.")
-        return
-    
-    while True:
-        try:
-            verificar_e_enviar_produto()
-            time.sleep(60)
-        except KeyboardInterrupt:
-            print("\nEncerrando o monitoramento...")
-            break
-        except Exception as e:
-            print(f"Erro no loop principal: {str(e)}")
-            time.sleep(60)
+@app.route('/verificar-produto', methods=['GET'])
+def verificar_produto():
+    try:
+        verificar_e_enviar_produto()
+        return jsonify({"status": "success", "message": "Processamento iniciado"}), 200
+    except Exception as e:
+        return jsonify({"status": "error", "message": str(e)}), 500
+
+@app.route('/status', methods=['GET'])
+def status():
+    if verificar_conexao():
+        return jsonify({"status": "success", "message": "Conexão com WhatsApp estabelecida."}), 200
+    else:
+        return jsonify({"status": "error", "message": "Falha na conexão com WhatsApp."}), 500
 
 if __name__ == "__main__":
-    main()
+    # A variável de ambiente 'PORT' é definida pelo Render
+    port = int(os.environ.get("PORT", 5000))
+    app.run(host="0.0.0.0", port=port)
