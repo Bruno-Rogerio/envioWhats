@@ -6,8 +6,6 @@ import time
 from dotenv import load_dotenv
 import locale
 
-# Configura o locale para o padrão brasileiro
-locale.setlocale(locale.LC_ALL, 'pt_BR.UTF-8')
 
 load_dotenv()
 
